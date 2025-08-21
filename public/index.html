@@ -3,17 +3,19 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Link Shortener Dashboard</title>
-		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
-		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+		<title>Link Tracker Dashboard</title>
+		<meta name="color-scheme" content="light dark" />
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css" />
+		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
 	</head>
-	<body>
-		<main class="container" x-data="linkShortener()">
-			<header>
-				<h1>Link Shortener</h1>
-				<p>Create, track, and manage your links.</p>
-			</header>
-
+	<body class="container">
+		<header>
+			<h1>Link Tracker</h1>
+			<p>Create, track, and manage your links.</p>
+		</header>
+		<main x-data="linkShortener()">
 			<article>
 				<h2 id="create">Create a New Link</h2>
 
@@ -35,8 +37,11 @@
 
 					<div class="grid">
 						<label for="slug">
-							Short Link Slug
-							<input type="text" id="slug" name="slug" x-model="form.slug" placeholder="my-awesome-link" required />
+							Slug
+							<fieldset role="group">
+								<button type="button" x-text="window.location.href" role="complementary">Button</button>
+								<input type="text" id="slug" name="slug" x-model="form.slug" placeholder="my-awesome-link" required />
+							</fieldset>
 						</label>
 					</div>
 
@@ -45,25 +50,25 @@
 						<div class="grid">
 							<label for="utm_source">
 								Source
-								<input type="text" id="utm_source" x-model="utm.source" placeholder="e.g., google" />
+								<input type="text" id="utm_source" x-model="utm.source" placeholder="e.g., google, social" />
 							</label>
 							<label for="utm_medium">
 								Medium
-								<input type="text" id="utm_medium" x-model="utm.medium" placeholder="e.g., cpc" />
+								<input type="text" id="utm_medium" x-model="utm.medium" placeholder="e.g., pdf, email" />
 							</label>
 						</div>
 						<div class="grid">
-							<label for="utm_campaign">
-								Campaign
-								<input type="text" id="utm_campaign" x-model="utm.campaign" placeholder="e.g., summer_sale" />
+							<label for="utm_purpose">
+								Purpose
+								<input type="text" id="utm_purpose" x-model="utm.purpose" placeholder="e.g., job, newsletter" />
 							</label>
 							<label for="utm_term">
 								Term
-								<input type="text" id="utm_term" x-model="utm.term" placeholder="e.g., running+shoes" />
+								<input type="text" id="utm_term" x-model="utm.term" placeholder="e.g., portfolio" />
 							</label>
 							<label for="utm_content">
 								Content
-								<input type="text" id="utm_content" x-model="utm.content" placeholder="e.g., video_ad" />
+								<input type="text" id="utm_content" x-model="utm.content" placeholder="e.g., badge" />
 							</label>
 						</div>
 					</details>
@@ -71,6 +76,7 @@
 					<label for="final-url">
 						Final URL
 						<input type="text" id="final-url" :value="finalUrl" readonly />
+						http://localhost:8787/short?utm_source=aziendaA&utm_medium=cv_pdf&utm_purpose=jobapplication&utm_term=portfolio
 					</label>
 
 					<button type="submit" :aria-busy="loading">Create Link</button>
@@ -80,7 +86,28 @@
 
 			<article>
 				<h2 id="links">Existing Links</h2>
-				<figure>
+				<figure class="overflow-auto">
+					<!-- <template x-if="links.length">
+						<div class="container" style="text-align: center">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="128"
+								height="128"
+								fill="currentColor"
+								class="bi bi-link-45deg text-center"
+								viewBox="0 0 16 16"
+							>
+								<path
+									d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"
+								/>
+								<path
+									d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"
+								/>
+							</svg>
+							<p>No link created</p>
+						</div>
+					</template> -->
+
 					<table>
 						<thead>
 							<tr>
@@ -96,7 +123,14 @@
 									<td><a :href="`/${link.slug}`" target="_blank" x-text="`/${link.slug}`"></a></td>
 									<td class="truncate"><a :href="link.url" target="_blank" x-text="link.url"></a></td>
 									<td x-text="new Date(link.created_at).toLocaleDateString()"></td>
-									<td><a :href="`analytics.html?slug=${link.slug}`" role="button" class="secondary">Analytics</a></td>
+									<td class="group">
+										<a :href="`analytics.html?slug=${link.slug}`" role="button" class="contrast">
+											<i class="bi bi-graph-up"></i> Analytics
+										</a>
+										<button type="button" class="pico-background-red-700" @click="deleteLink(link.slug)">
+											<i class="bi bi-trash3"></i>
+										</button>
+									</td>
 								</tr>
 							</template>
 						</tbody>
@@ -115,14 +149,15 @@
 						slug: '',
 						url: '',
 					},
-					previewUrl: '',
+
 					utm: {
 						source: '',
 						medium: '',
-						campaign: '',
+						purpose: '',
 						term: '',
 						content: '',
 					},
+
 					init() {
 						this.fetchLinks();
 					},
@@ -132,7 +167,6 @@
 						try {
 							const response = await fetch('/api/links');
 							this.links = await response.json();
-							console.log(this.links);
 						} catch (error) {
 							console.error('Error fetching links:', error);
 							this.message = 'Failed to fetch links.';
@@ -145,8 +179,6 @@
 						this.loading = true;
 						this.message = '';
 						try {
-							console.log(this.form);
-
 							const slugExist = this.links.some((link) => link.slug === this.form.slug);
 
 							if (slugExist) {
@@ -173,6 +205,31 @@
 							await this.fetchLinks();
 						} catch (error) {
 							console.error('Error creating link:', error);
+							this.message = error.message;
+						} finally {
+							this.loading = false;
+							setTimeout(() => (this.message = ''), 3000);
+						}
+					},
+					async deleteLink(slug) {
+						this.loading = true;
+						this.message = '';
+
+						try {
+							const response = await fetch('/api/links', {
+								method: 'DELETE',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									slug,
+								}),
+							});
+							if (!response.ok) {
+								const errorData = await response.json();
+								throw new Error(errorData.error || 'Failed to delete link');
+							}
+							await this.fetchLinks();
+						} catch (error) {
+							console.error('Error delete link:', error);
 							this.message = error.message;
 						} finally {
 							this.loading = false;

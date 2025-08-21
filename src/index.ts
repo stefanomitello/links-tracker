@@ -38,6 +38,20 @@ app.post('/api/links', async (c) => {
 	}
 });
 
+app.delete('/api/links', async (c) => {
+	try {
+		const { slug } = await c.req.json();
+		if (!slug) {
+			return c.json({ error: 'Slug is required' }, 400);
+		}
+		await c.env.DB.prepare('DELETE FROM links WHERE slug = ?').bind(slug).run();
+		return c.json({ message: 'Link deleted successfully' });
+	} catch (e: any) {
+		console.error({ message: e.message });
+		return c.json({ error: 'Something went wrong' }, 500);
+	}
+});
+
 app.get('/api/links', async (c) => {
 	try {
 		const { results } = await c.env.DB.prepare('SELECT * FROM links').all();
@@ -87,15 +101,20 @@ app.get('/:slug', async (c) => {
 		// Log analytics
 		const utm_source = c.req.query('utm_source');
 		const utm_medium = c.req.query('utm_medium');
-		const utm_campaign = c.req.query('utm_campaign');
+		const utm_purpose = c.req.query('utm_purpose');
 		const utm_term = c.req.query('utm_term');
 		const utm_content = c.req.query('utm_content');
+		console.log('AAAAAAAAAAAA', link_id, utm_source, utm_medium, utm_purpose, utm_term, utm_content);
 
-		await c.env.DB.prepare(
-			'INSERT INTO analytics (link_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content) VALUES (?, ?, ?, ?, ?, ?)'
-		)
-			.bind(link_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content)
-			.run();
+		try {
+			await c.env.DB.prepare(
+				'INSERT INTO analytics (link_id, utm_source, utm_medium, utm_purpose, utm_term, utm_content) VALUES (?, ?, ?, ?, ?, ?)'
+			)
+				.bind(link_id, utm_source, utm_medium, utm_purpose, utm_term, utm_content)
+				.run();
+		} catch (e) {
+			console.log(e);
+		}
 
 		return c.redirect(url as string, 301);
 	} catch (e: any) {

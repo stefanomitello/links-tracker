@@ -11,7 +11,7 @@ CREATE TABLE analytics (
   link_id INTEGER NOT NULL,
   utm_source TEXT,
   utm_medium TEXT,
-  utm_campaign TEXT,
+  utm_purpose TEXT,
   utm_term TEXT,
   utm_content TEXT,
   clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
