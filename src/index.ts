@@ -11,8 +11,102 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return new Response('Hello World!');
-	},
-} satisfies ExportedHandler<Env>;
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+
+type Bindings = {
+	DB: D1Database;
+	ASSETS: Fetcher;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+app.use('*', cors());
+
+// API routes
+app.post('/api/links', async (c) => {
+	try {
+		const { slug, url } = await c.req.json();
+		if (!slug || !url) {
+			return c.json({ error: 'Slug and URL are required' }, 400);
+		}
+		await c.env.DB.prepare('INSERT INTO links (slug, url) VALUES (?, ?)').bind(slug, url).run();
+		return c.json({ message: 'Link created successfully' });
+	} catch (e: any) {
+		console.error({ message: e.message });
+		return c.json({ error: 'Something went wrong' }, 500);
+	}
+});
+
+app.get('/api/links', async (c) => {
+	try {
+		const { results } = await c.env.DB.prepare('SELECT * FROM links').all();
+		return c.json(results);
+	} catch (e: any) {
+		console.error({ message: e.message });
+		return c.json({ error: 'Something went wrong' }, 500);
+	}
+});
+
+app.get('/api/analytics/:slug', async (c) => {
+	const slug = c.req.param('slug');
+	try {
+		const linkQuery = await c.env.DB.prepare('SELECT id FROM links WHERE slug = ?').bind(slug).first();
+
+		if (!linkQuery) {
+			return c.json({ error: 'Link not found' }, 404);
+		}
+		const link_id = linkQuery.id;
+
+		const { results } = await c.env.DB.prepare('SELECT * FROM analytics WHERE link_id = ?').bind(link_id).all();
+		return c.json(results);
+	} catch (e: any) {
+		console.error({ message: e.message });
+		return c.json({ error: 'Something went wrong' }, 500);
+	}
+});
+
+// Redirect route
+app.get('/:slug', async (c) => {
+	const slug = c.req.param('slug');
+	// This is a simple way to distinguish between slugs and file paths
+	if (slug.includes('.')) {
+		return c.env.ASSETS.fetch(c.req.raw);
+	}
+
+	try {
+		const linkQuery = await c.env.DB.prepare('SELECT id, url FROM links WHERE slug = ?').bind(slug).first();
+
+		if (!linkQuery) {
+			// If link not found, maybe it's a static asset for the dashboard
+			return c.env.ASSETS.fetch(c.req.raw);
+		}
+
+		const { id: link_id, url } = linkQuery;
+
+		// Log analytics
+		const utm_source = c.req.query('utm_source');
+		const utm_medium = c.req.query('utm_medium');
+		const utm_campaign = c.req.query('utm_campaign');
+		const utm_term = c.req.query('utm_term');
+		const utm_content = c.req.query('utm_content');
+
+		await c.env.DB.prepare(
+			'INSERT INTO analytics (link_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content) VALUES (?, ?, ?, ?, ?, ?)'
+		)
+			.bind(link_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content)
+			.run();
+
+		return c.redirect(url as string, 301);
+	} catch (e: any) {
+		console.error({ message: e.message });
+		return c.json({ error: 'Something went wrong' }, 500);
+	}
+});
+
+// Serve static assets for the root
+app.get('/', (c) => {
+	return c.env.ASSETS.fetch(c.req.raw);
+});
+
+export default app;

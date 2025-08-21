@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Link Analytics</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	</head>
+	<body>
+		<main class="container" x-data="analyticsPage()">
+			<header>
+				<nav>
+					<ul>
+						<li><a href="/">&larr; Back to Dashboard</a></li>
+					</ul>
+				</nav>
+				<h1>Analytics for <code x-text="`/${slug}`"></code></h1>
+			</header>
+
+			<div x-show="loading" aria-busy="true">Fetching data...</div>
+
+			<div x-show="error" x-text="error" role="alert"></div>
+
+			<template x-if="!loading && !error">
+				<div>
+					<article>
+						<h2>Clicks per Day</h2>
+						<canvas id="clicksChart"></canvas>
+					</article>
+
+					<article>
+						<h2>Raw Click Data</h2>
+						<figure>
+							<table>
+								<thead>
+									<tr>
+										<th>Date & Time</th>
+										<th>Source</th>
+										<th>Medium</th>
+										<th>Campaign</th>
+										<th>Term</th>
+										<th>Content</th>
+									</tr>
+								</thead>
+								<tbody>
+									<template x-for="click in analytics" :key="click.id">
+										<tr>
+											<td x-text="new Date(click.clicked_at).toLocaleString()"></td>
+											<td x-text="click.utm_source || 'N/A'"></td>
+											<td x-text="click.utm_medium || 'N/A'"></td>
+											<td x-text="click.utm_campaign || 'N/A'"></td>
+											<td x-text="click.utm_term || 'N/A'"></td>
+											<td x-text="click.utm_content || 'N/A'"></td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+						</figure>
+					</article>
+				</div>
+			</template>
+		</main>
+
+		<script>
+			function analyticsPage() {
+				return {
+					slug: '',
+					analytics: [],
+					loading: true,
+					error: '',
+					init() {
+						const urlParams = new URLSearchParams(window.location.search);
+						this.slug = urlParams.get('slug');
+						if (this.slug) {
+							this.fetchAnalytics();
+						} else {
+							this.error = 'No link slug provided.';
+							this.loading = false;
+						}
+					},
+					async fetchAnalytics() {
+						this.loading = true;
+						this.error = '';
+						try {
+							const response = await fetch(`/api/analytics/${this.slug}`);
+							if (!response.ok) {
+								const errorData = await response.json();
+								throw new Error(errorData.error || 'Failed to fetch analytics');
+							}
+							this.analytics = await response.json();
+							this.renderChart();
+						} catch (err) {
+							console.error('Error fetching analytics:', err);
+							this.error = err.message;
+						} finally {
+							this.loading = false;
+						}
+					},
+					renderChart() {
+						const clicksByDay = this.analytics.reduce((acc, click) => {
+							const date = new Date(click.clicked_at).toLocaleDateString();
+							acc[date] = (acc[date] || 0) + 1;
+							return acc;
+						}, {});
+
+						const ctx = document.getElementById('clicksChart').getContext('2d');
+						new Chart(ctx, {
+							type: 'bar',
+							data: {
+								labels: Object.keys(clicksByDay),
+								datasets: [
+									{
+										label: 'Total Clicks',
+										data: Object.values(clicksByDay),
+										backgroundColor: 'rgba(75, 192, 192, 0.2)',
+										borderColor: 'rgba(75, 192, 192, 1)',
+										borderWidth: 1,
+									},
+								],
+							},
+							options: {
+								scales: {
+									y: {
+										beginAtZero: true,
+										ticks: {
+											stepSize: 1,
+										},
+									},
+								},
+							},
+						});
+					},
+				};
+			}
+		</script>
+	</body>
+</html>

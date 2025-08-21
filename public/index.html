@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Link Shortener Dashboard</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+	</head>
+	<body>
+		<main class="container" x-data="linkShortener()">
+			<header>
+				<h1>Link Shortener</h1>
+				<p>Create, track, and manage your links.</p>
+			</header>
+
+			<article>
+				<h2 id="create">Create a New Link</h2>
+
+				<form @submit.prevent="createLink">
+					<div class="grid">
+						<label for="url">
+							Destination URL
+							<input
+								type="url"
+								id="url"
+								name="url"
+								x-model="form.url"
+								@blur="if(form.url && !form.url.startsWith('https://')) form.url = 'https://' + form.url.replace(/^https?:\/\//, '')"
+								placeholder="https://example.com"
+								required
+							/>
+						</label>
+					</div>
+
+					<div class="grid">
+						<label for="slug">
+							Short Link Slug
+							<input type="text" id="slug" name="slug" x-model="form.slug" placeholder="my-awesome-link" required />
+						</label>
+					</div>
+
+					<details>
+						<summary>UTM Builder</summary>
+						<div class="grid">
+							<label for="utm_source">
+								Source
+								<input type="text" id="utm_source" x-model="utm.source" placeholder="e.g., google" />
+							</label>
+							<label for="utm_medium">
+								Medium
+								<input type="text" id="utm_medium" x-model="utm.medium" placeholder="e.g., cpc" />
+							</label>
+						</div>
+						<div class="grid">
+							<label for="utm_campaign">
+								Campaign
+								<input type="text" id="utm_campaign" x-model="utm.campaign" placeholder="e.g., summer_sale" />
+							</label>
+							<label for="utm_term">
+								Term
+								<input type="text" id="utm_term" x-model="utm.term" placeholder="e.g., running+shoes" />
+							</label>
+							<label for="utm_content">
+								Content
+								<input type="text" id="utm_content" x-model="utm.content" placeholder="e.g., video_ad" />
+							</label>
+						</div>
+					</details>
+
+					<label for="final-url">
+						Final URL
+						<input type="text" id="final-url" :value="finalUrl" readonly />
+					</label>
+
+					<button type="submit" :aria-busy="loading">Create Link</button>
+				</form>
+				<p x-show="message" x-text="message" class="success-message"></p>
+			</article>
+
+			<article>
+				<h2 id="links">Existing Links</h2>
+				<figure>
+					<table>
+						<thead>
+							<tr>
+								<th>Short Link</th>
+								<th>Destination URL</th>
+								<th>Created</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="link in links" :key="link.id">
+								<tr>
+									<td><a :href="`/${link.slug}`" target="_blank" x-text="`/${link.slug}`"></a></td>
+									<td class="truncate"><a :href="link.url" target="_blank" x-text="link.url"></a></td>
+									<td x-text="new Date(link.created_at).toLocaleDateString()"></td>
+									<td><a :href="`analytics.html?slug=${link.slug}`" role="button" class="secondary">Analytics</a></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+				</figure>
+			</article>
+		</main>
+
+		<script>
+			function linkShortener() {
+				return {
+					links: [],
+					loading: false,
+					message: '',
+					form: {
+						slug: '',
+						url: '',
+					},
+					previewUrl: '',
+					utm: {
+						source: '',
+						medium: '',
+						campaign: '',
+						term: '',
+						content: '',
+					},
+					init() {
+						this.fetchLinks();
+					},
+
+					async fetchLinks() {
+						this.loading = true;
+						try {
+							const response = await fetch('/api/links');
+							this.links = await response.json();
+							console.log(this.links);
+						} catch (error) {
+							console.error('Error fetching links:', error);
+							this.message = 'Failed to fetch links.';
+						} finally {
+							this.loading = false;
+						}
+					},
+
+					async createLink() {
+						this.loading = true;
+						this.message = '';
+						try {
+							console.log(this.form);
+
+							const slugExist = this.links.some((link) => link.slug === this.form.slug);
+
+							if (slugExist) {
+								throw new Error('Cannot create link cause slug already exists!');
+							}
+
+							const response = await fetch('/api/links', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									slug: this.form.slug,
+									url: this.form.url,
+								}),
+							});
+
+							if (!response.ok) {
+								const errorData = await response.json();
+								throw new Error(errorData.error || 'Failed to create link');
+							}
+							this.message = 'Link created successfully!';
+							this.form.slug = '';
+							this.form.url = '';
+							Object.keys(this.utm).forEach((key) => (this.utm[key] = ''));
+							await this.fetchLinks();
+						} catch (error) {
+							console.error('Error creating link:', error);
+							this.message = error.message;
+						} finally {
+							this.loading = false;
+							setTimeout(() => (this.message = ''), 3000);
+						}
+					},
+
+					get finalUrl() {
+						if (!this.form.url && !this.form.slug) return 'url';
+						const url = new URL(window.location.href + this.form.slug);
+						Object.entries(this.utm).forEach(([key, value]) => {
+							if (value) {
+								url.searchParams.set(`utm_${key}`, value);
+							}
+						});
+
+						return url.toString();
+					},
+				};
+			}
+		</script>
+		<style>
+			.truncate {
+				max-width: 250px;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.success-message {
+				color: var(--pico-color-green-500);
+			}
+		</style>
+	</body>
+</html>
