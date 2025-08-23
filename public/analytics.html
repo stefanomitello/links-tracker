@@ -32,7 +32,7 @@
 						<canvas id="clicksChart"></canvas>
 					</article> -->
 
-					<template x-for="click in clicks" :key="click.id">
+					<template x-for="click in clicks" :key="Math.random(click.id)">
 						<article>
 							<header>
 								<p>
@@ -144,7 +144,7 @@
 						return this.analytics.map((click) => ({
 							...click,
 							parsed_metrics: JSON.parse(click.metrics),
-							ua: new UAParser(JSON.parse(click.metrics).ua).getResult() || undefined,
+							ua: new UAParser(JSON.parse(click.metrics).userAgent).getResult() || undefined,
 						}));
 					},
 					renderChart() {
