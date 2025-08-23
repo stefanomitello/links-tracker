@@ -9,9 +9,7 @@ This tracker generate a slug from a destination link and u can add the UTM query
 
 ## Tech Stack
 
-**Client:** Alpine.js, PicoCSS
-
-**Server:** Cloudflare Worker, D1, Hono
+Alpine.js, PicoCSS, Cloudflare Worker, D1, Hono
 
 
 ## Run Locally
