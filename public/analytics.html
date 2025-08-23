@@ -7,7 +7,8 @@
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css" />
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<script async defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<script defer src="https://cdn.jsdelivr.net/npm/ua-parser-js/dist/ua-parser.min.js"></script>
 	</head>
 	<body>
 		<main class="container" x-data="analyticsPage()">
@@ -26,40 +27,75 @@
 
 			<template x-if="!loading && !error">
 				<div>
-					<article>
+					<!-- <article>
 						<h2>Clicks per Day</h2>
 						<canvas id="clicksChart"></canvas>
-					</article>
+					</article> -->
 
-					<article>
-						<h2>Raw Click Data</h2>
-						<figure>
-							<table>
-								<thead>
-									<tr>
-										<th>Date & Time</th>
-										<th>Source</th>
-										<th>Medium</th>
-										<th>Campaign</th>
-										<th>Term</th>
-										<th>Content</th>
-									</tr>
-								</thead>
-								<tbody>
-									<template x-for="click in analytics" :key="click.id">
-										<tr>
-											<td x-text="new Date(click.clicked_at).toLocaleString()"></td>
-											<td x-text="click.utm_source || 'N/A'"></td>
-											<td x-text="click.utm_medium || 'N/A'"></td>
-											<td x-text="click.utm_campaign || 'N/A'"></td>
-											<td x-text="click.utm_term || 'N/A'"></td>
-											<td x-text="click.utm_content || 'N/A'"></td>
-										</tr>
-									</template>
-								</tbody>
-							</table>
-						</figure>
-					</article>
+					<template x-for="click in clicks" :key="click.id">
+						<article>
+							<header>
+								<p>
+									<strong>Data click:</strong>
+									<span x-text="new Date(click.clicked_at).toLocaleString('it-IT')"></span>
+								</p>
+							</header>
+							<details>
+								<summary>Mostra dettagli</summary>
+								<div class="grid">
+									<div>
+										<h4>Parametri UTM</h4>
+										<div x-show="Object.keys(click.parsed_metrics.utm).length > 0">
+											<ul>
+												<template x-for="[key, value] in Object.entries(click.parsed_metrics.utm)" :key="key">
+													<li>
+														<strong><span x-text="key"></span>:</strong>
+														<span x-text="value"></span>
+													</li>
+												</template>
+											</ul>
+										</div>
+										<div x-show="Object.keys(click.parsed_metrics.utm).length === 0">
+											<p><i class="bi bi-bar-chart-fill"></i> Nessun parametro UTM registrato.</p>
+										</div>
+									</div>
+
+									<div>
+										<h4>Headers</h4>
+										<div x-show="Object.keys(click.parsed_metrics.headers).length > 0">
+											<div x-data="{ua: new UAParser(click.ua).getResult()}" class="pills-container">
+												<template x-if="ua?.browser?.name">
+													<kbd x-text="`${ua?.browser.name} ${ua?.browser.major || ''}`.trim()"></kbd>
+												</template>
+
+												<template x-if="ua?.os?.name">
+													<kbd x-text="`${ua?.os.name} ${ua?.os.version || ''}`.trim()"></kbd>
+												</template>
+												<template x-if="ua?.device?.vendor || ua?.device?.model">
+													<kbd x-text="[ua?.device.vendor, ua?.device.model].filter(Boolean).join(' ')"></kbd>
+												</template>
+
+												<template x-if="ua?.engine?.name">
+													<kbd x-text="ua?.engine.name"></kbd>
+												</template>
+											</div>
+											<ul>
+												<template x-for="[key, value] in Object.entries(click.parsed_metrics.headers)" :key="key">
+													<li>
+														<strong><span x-text="key" class="uppercase"></span>:</strong>
+														<span x-text="value || 'N/A'"></span>
+													</li>
+												</template>
+											</ul>
+										</div>
+										<div x-show="Object.keys(click.parsed_metrics.headers).length === 0">
+											<p>Nessun header registrato.</p>
+										</div>
+									</div>
+								</div>
+							</details>
+						</article>
+					</template>
 				</div>
 			</template>
 		</main>
@@ -90,15 +126,26 @@
 								const errorData = await response.json();
 								throw new Error(errorData.error || 'Failed to fetch analytics');
 							}
-							this.analytics = await response.json();
-							if (!this.analytics.lenght) return;
-							this.renderChart();
+							const res = await response.json();
+							if (res.length === 0) return;
+							this.analytics = res;
+
+							console.log('raw', this.analytics);
+
+							// this.renderChart();
 						} catch (err) {
 							console.error('Error fetching analytics:', err);
 							this.error = err.message;
 						} finally {
 							this.loading = false;
 						}
+					},
+					get clicks() {
+						return this.analytics.map((click) => ({
+							...click,
+							parsed_metrics: JSON.parse(click.metrics),
+							ua: new UAParser(JSON.parse(click.metrics).ua).getResult() || undefined,
+						}));
 					},
 					renderChart() {
 						const clicksByDay = this.analytics.reduce((acc, click) => {
@@ -137,5 +184,17 @@
 				};
 			}
 		</script>
+		<style>
+			.uppercase {
+				text-transform: uppercase;
+			}
+			.pills-container {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem; /* Spazio tra le pills */
+				align-items: center;
+				margin-top: 1rem;
+			}
+		</style>
 	</body>
 </html>

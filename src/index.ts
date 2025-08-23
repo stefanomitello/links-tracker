@@ -83,6 +83,7 @@ app.get('/api/analytics/:slug', async (c) => {
 // Redirect route
 app.get('/:slug', async (c) => {
 	const slug = c.req.param('slug');
+
 	// This is a simple way to distinguish between slugs and file paths
 	if (slug.includes('.')) {
 		return c.env.ASSETS.fetch(c.req.raw);
@@ -97,23 +98,19 @@ app.get('/:slug', async (c) => {
 		}
 
 		const { id: link_id, url } = linkQuery;
+		const queryparams = c.req.query();
+		const userdata = {
+			ua: c.req.header('user-agent') || 'unknown',
+			ip: c.req.header('cf-connecting-ip') || 'unknown',
+			referer: c.req.header('referer') || null,
+		};
 
-		// Log analytics
-		const utm_source = c.req.query('utm_source');
-		const utm_medium = c.req.query('utm_medium');
-		const utm_purpose = c.req.query('utm_purpose');
-		const utm_term = c.req.query('utm_term');
-		const utm_content = c.req.query('utm_content');
-		console.log('AAAAAAAAAAAA', link_id, utm_source, utm_medium, utm_purpose, utm_term, utm_content);
+		const metrics = JSON.stringify({ UTM: queryparams, headers: userdata || {} });
 
 		try {
-			await c.env.DB.prepare(
-				'INSERT INTO analytics (link_id, utm_source, utm_medium, utm_purpose, utm_term, utm_content) VALUES (?, ?, ?, ?, ?, ?)'
-			)
-				.bind(link_id, utm_source, utm_medium, utm_purpose, utm_term, utm_content)
-				.run();
+			await c.env.DB.prepare('INSERT INTO analytics (link_id, metrics) VALUES (?, ?)').bind(link_id, metrics).run();
 		} catch (e) {
-			console.log(e);
+			console.error(e);
 		}
 
 		return c.redirect(url as string, 301);

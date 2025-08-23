@@ -24,9 +24,9 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "link-shortener-db",
+			"database_name": "link-tracker-db",
 			"database_id": "b5bdb393-f806-49fc-8a50-9778329f4a1c",
-			"preview_database_id": "DB"
+			"preview_database_id": "b5bdb393-f806-49fc-8a50-9778329f4a1c"
 		}
 	],
 	"assets": {

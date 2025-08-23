@@ -9,11 +9,7 @@ CREATE TABLE links (
 CREATE TABLE analytics (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   link_id INTEGER NOT NULL,
-  utm_source TEXT,
-  utm_medium TEXT,
-  utm_purpose TEXT,
-  utm_term TEXT,
-  utm_content TEXT,
+	metrics TEXT,
   clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (link_id) REFERENCES links(id)
 );
