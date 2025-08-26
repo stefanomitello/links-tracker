@@ -237,7 +237,7 @@
 					},
 
 					get finalUrl() {
-						if (!this.form.url && !this.form.slug) return 'url';
+						if (!this.form.url && !this.form.slug) return '';
 						const url = new URL(window.location.href + this.form.slug);
 						Object.entries(this.utm).forEach(([key, value]) => {
 							if (value) {

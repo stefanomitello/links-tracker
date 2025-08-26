@@ -37,33 +37,16 @@
 							<header>
 								<p>
 									<strong>Data click:</strong>
-									<span x-text="new Date(click.clicked_at).toLocaleString('it-IT')"></span>
+									<span x-text="new Date(click?.clicked_at).toLocaleString('it-IT')"></span>
 								</p>
 							</header>
 							<details>
 								<summary>Mostra dettagli</summary>
-								<div class="grid">
-									<div>
-										<h4>Parametri UTM</h4>
-										<div x-show="Object.keys(click.parsed_metrics.utm).length > 0">
-											<ul>
-												<template x-for="[key, value] in Object.entries(click.parsed_metrics.utm)" :key="key">
-													<li>
-														<strong><span x-text="key"></span>:</strong>
-														<span x-text="value"></span>
-													</li>
-												</template>
-											</ul>
-										</div>
-										<div x-show="Object.keys(click.parsed_metrics.utm).length === 0">
-											<p><i class="bi bi-bar-chart-fill"></i> Nessun parametro UTM registrato.</p>
-										</div>
-									</div>
 
-									<div>
-										<h4>Headers</h4>
-										<div x-show="Object.keys(click.parsed_metrics.headers).length > 0">
-											<div x-data="{ua: new UAParser(click.ua).getResult()}" class="pills-container">
+								<article>
+									<div x-show="Object.keys(click?.parsed_metrics).length > 0">
+										<template x-if="click?.parsed_metrics.userAgent">
+											<div x-data="{ua: new UAParser(click?.userAgent).getResult()}" class="pills-container">
 												<template x-if="ua?.browser?.name">
 													<kbd x-text="`${ua?.browser.name} ${ua?.browser.major || ''}`.trim()"></kbd>
 												</template>
@@ -79,20 +62,22 @@
 													<kbd x-text="ua?.engine.name"></kbd>
 												</template>
 											</div>
-											<ul>
-												<template x-for="[key, value] in Object.entries(click.parsed_metrics.headers)" :key="key">
-													<li>
-														<strong><span x-text="key" class="uppercase"></span>:</strong>
-														<span x-text="value || 'N/A'"></span>
-													</li>
-												</template>
-											</ul>
-										</div>
-										<div x-show="Object.keys(click.parsed_metrics.headers).length === 0">
-											<p>Nessun header registrato.</p>
-										</div>
+											<hr />
+										</template>
+
+										<ul>
+											<template x-for="[key, value] in Object.entries(click?.parsed_metrics)" :key="key">
+												<li>
+													<strong><span x-text="key"></span>:</strong>
+													<span x-text="value"></span>
+												</li>
+											</template>
+										</ul>
 									</div>
-								</div>
+									<div x-show="!Object.keys(click?.parsed_metrics).length === 0">
+										<p><i class="bi bi-bar-chart-fill"></i> Nessun parametro UTM registrato.</p>
+									</div>
+								</article>
 							</details>
 						</article>
 					</template>
@@ -130,8 +115,6 @@
 							if (res.length === 0) return;
 							this.analytics = res;
 
-							console.log('raw', this.analytics);
-
 							// this.renderChart();
 						} catch (err) {
 							console.error('Error fetching analytics:', err);
@@ -142,7 +125,7 @@
 					},
 					get clicks() {
 						return this.analytics.map((click) => ({
-							...click,
+							clicked_at: click.clicked_at,
 							parsed_metrics: JSON.parse(click.metrics),
 							ua: new UAParser(JSON.parse(click.metrics).userAgent).getResult() || undefined,
 						}));
