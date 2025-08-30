@@ -14,7 +14,6 @@
 import { Hono } from 'hono';
 
 import { cors } from 'hono/cors';
-import { getRouterName, showRoutes } from 'hono/dev';
 import dashboardHtml from './views/main.html';
 import analyticsHtml from './views/stats.html';
 
@@ -29,7 +28,7 @@ const api = new Hono<{ Bindings: Bindings }>();
 api.use('*', cors());
 api.get('/links', async (c) => {
 	try {
-		const { results } = await c.env.DB.prepare('SELECT slug, url, created_at FROM links ORDER BY created_at DESC').all();
+		const { results } = await c.env.DB.prepare('SELECT * FROM links ORDER BY created_at DESC').all();
 		return c.json(results);
 	} catch (e: any) {
 		return c.json({ error: e.message }, 500);
@@ -146,10 +145,5 @@ app.get('/:slug', async (c) => {
 
 app.notFound((c) => c.text('404', 404));
 app.onError((err, c) => c.json({ err }, 500));
-
-console.log(getRouterName(app));
-showRoutes(app, {
-	verbose: true,
-});
 
 export default app;
