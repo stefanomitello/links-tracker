@@ -98,7 +98,7 @@ app.get('/analytics', async (c) => {
 			'WWW-Authenticate': 'Basic realm="Link Tracker"',
 		});
 	}
-	return c.html(analyticsHtml());
+	return c.html(analyticsHtml);
 });
 
 app.get('/:slug', async (c) => {
