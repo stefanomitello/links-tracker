@@ -8,6 +8,7 @@
 		"lib": ["es2021"],
 		/* Specify what JSX code is generated. */
 		"jsx": "react-jsx",
+		"jsxImportSource": "hono/jsx",
 
 		/* Specify what module code is generated. */
 		"module": "es2022",
@@ -36,9 +37,7 @@
 
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
-		"types": [
-			"./worker-configuration.d.ts"
-		]
+		"types": ["./worker-configuration.d.ts", "./html.d.ts"]
 	},
 	"exclude": ["test"],
 	"include": ["worker-configuration.d.ts", "src/**/*.ts"]

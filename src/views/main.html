@@ -123,9 +123,7 @@
 									<td class="truncate"><a :href="link.url" target="_blank" x-text="link.url"></a></td>
 									<td x-text="new Date(link.created_at).toLocaleDateString()"></td>
 									<td class="group">
-										<a :href="`analytics.html?slug=${link.slug}`" role="button" class="contrast">
-											<i class="bi bi-graph-up"></i> Analytics
-										</a>
+										<a :href="`analytics?slug=${link.slug}`" role="button" class="contrast"> <i class="bi bi-graph-up"></i> Analytics </a>
 										<button type="button" class="pico-background-red-700" @click="deleteLink(link.slug)">
 											<i class="bi bi-trash3"></i>
 										</button>
